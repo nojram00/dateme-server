@@ -1,6 +1,12 @@
 from .base import BaseMongoModel
 from pydantic import BaseModel
 from bson import ObjectId
+from enum import Enum
+
+class Gender(str, Enum):
+    male = "male"
+    female = "female"
+    other = "other"
 
 class UserForm(BaseModel):
     username : str
@@ -8,13 +14,25 @@ class UserForm(BaseModel):
     password : str
     first_name : str
     last_name : str
+    gender : Gender
 
 class UserSchema(BaseModel):
+    """
+    A basic data response model for user.
+
+    Attributes:
+        uid (str): The user id.
+        username (str): The username.
+        email (str): The email.
+        first_name (str): The first name.
+        last_name (str): The last name.
+    """
     uid : str
     username : str
     email : str
     first_name : str
     last_name : str
+    gender : Gender
 
 class User(BaseMongoModel):
     collection_name = 'users'
