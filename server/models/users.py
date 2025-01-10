@@ -69,7 +69,8 @@ class User(BaseMongoModel):
                 username=user_dict['username'], 
                 email=user_dict['email'], 
                 first_name=user_dict['first_name'], 
-                last_name=user_dict['last_name']
+                last_name=user_dict['last_name'],
+                gender=user_dict['gender']
             )
         except Exception as e:
             print(e)
@@ -90,7 +91,8 @@ class User(BaseMongoModel):
                 username=result['username'], 
                 email=result['email'], 
                 first_name=result['first_name'], 
-                last_name=result['last_name']
+                last_name=result['last_name'],
+                gender=result['gender']
             )
         
         return None
@@ -109,7 +111,28 @@ class User(BaseMongoModel):
                 username=result['username'], 
                 email=result['email'], 
                 first_name=result['first_name'], 
-                last_name=result['last_name']
+                last_name=result['last_name'],
+                gender=result['gender']
             )
         
         return None
+    
+    def get_users_by_gender(self, gender : Gender) -> list[UserSchema]:
+        """
+        Returns a list of users based on gender
+        """
+        results = self.collection.find({ "gender" : gender })
+
+        users = []
+        if results:
+            for result in results:
+                users.append(UserSchema(
+                    uid=str(result['_id']),
+                    username=result['username'], 
+                    email=result['email'], 
+                    first_name=result['first_name'], 
+                    last_name=result['last_name'],
+                    gender=result['gender']
+                ))
+        
+        return users

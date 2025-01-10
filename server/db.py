@@ -11,6 +11,4 @@ def create_connection():
 
 if __name__ == "__main__":
     db = create_connection()
-    # print(db.list_collection_names())
-    profiles = db['users']
-    print(list([profile for profile in profiles.find()]))
+    print(db.list_collection_names())

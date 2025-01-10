@@ -1,5 +1,6 @@
 from .base import BaseMongoModel
 from pydantic import BaseModel
+from bson import ObjectId
 
 class PostSchema(BaseModel):
     user_id: str
@@ -22,7 +23,7 @@ class Post(BaseMongoModel):
 
         return str(post.inserted_id)
     
-    def get_posts_by_id(self, user_id: str) -> list[PostData]:
+    def get_posts_by_uid(self, user_id: str) -> list[PostData]:
         results = self.collection.find({ 'user_id' : user_id })
         posts = []
         for result in results:
@@ -33,3 +34,13 @@ class Post(BaseMongoModel):
                 content=result['content']
             ))
         return posts
+    
+    def get_post_by_id(self, post_id : str) -> PostData | None:
+        result = self.collection.find_one({ '_id' : ObjectId(post_id) })
+        if result:
+            return PostData(
+                post_id=str(result['_id']),
+                user_id=result['user_id'],
+                content=result['content']
+            )
+        return None
