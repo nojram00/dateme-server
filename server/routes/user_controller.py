@@ -10,10 +10,16 @@ def get_users():
     user = users.User()
     return user.get_users()
 
-@router.post("/users/create")
+@router.post("/users/register")
 def create_users(body : users.UserForm):
     user = users.User()
-    return user.create_user(body)
+    s = session.Session()
+    created_user = user.create_user(body)
+    session_id = s.create_session(session.LoginForm(
+        username=created_user.username,
+        password=body.password
+    ))
+    return { "session_id" : session_id }
 
 @router.post("/users/login")
 def login(body : session.LoginForm):
