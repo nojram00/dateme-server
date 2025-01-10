@@ -36,6 +36,9 @@ def logout(x_session_header : str = Header(None)):
 
 @router.get("/users/get_session")
 def get_session(x_session_header : str = Header(None)):
+    """
+    Get the session data of the user based on a session Id Provided.
+    """
     token = validate(x_session_header)
 
     s = session.Session()

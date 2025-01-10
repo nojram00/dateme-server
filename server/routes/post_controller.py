@@ -24,9 +24,29 @@ def create_post(body : CreateForm, x_session_header : str = Header(None)):
         "post_id" : result
     }
 
+@router.get("/posts")
+def get_posts():
+    post = Post()
+    result = post.get_posts()
+
+    return result
+
 @router.get("/posts/user/{user_id}")
 def get_posts_by_id(user_id: str):
     post = Post()
     result = post.get_posts_by_uid(user_id)
 
     return result
+
+@router.post("/posts/like/{post_id}")
+def like_post(post_id : str, x_session_header : str = Header(None)):
+    token = validate(x_session_header)
+
+    s = Session()
+    post = Post()
+    liked = post.like_post(post_id, s.get_session(token).uid)
+
+    if liked:
+        return { "status" : "success", "message" : "Post liked successfully." }
+    
+    return { "status" : "success", "message" : "Post unliked successfully." }

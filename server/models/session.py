@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from .users import User, UserSchema
 from bson import ObjectId
 from uuid import uuid4
+from datetime import datetime, timedelta, timezone
 
 class LoginForm(BaseModel):
     username : str
@@ -27,7 +28,9 @@ class Session(BaseMongoModel):
 
             result = self.collection.insert_one({
                 'user_id' : user.uid,
-                'session_id' : session_id
+                'session_id' : session_id,
+                'created_at' : datetime.now(timezone.utc),
+                'expires_at' : datetime.now(timezone.utc) + timedelta(days=30)
             })
 
             session = self.collection.find_one({ '_id' : ObjectId(result.inserted_id) })
@@ -44,6 +47,12 @@ class Session(BaseMongoModel):
             userModel = User()
             user = userModel.get_user_by_id(session['user_id'])
             return user
+        return None
+    
+    def get_session_expiry(self, session_id : str) -> datetime | None:
+        session = self.collection.find_one({ "session_id" : session_id })
+        if session:
+            return session['expires_at']
         return None
 
     def delete_session(self, session_id : str):
