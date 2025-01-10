@@ -49,7 +49,8 @@ class User(BaseMongoModel):
                 username=result['username'], 
                 email=result['email'], 
                 first_name=result['first_name'], 
-                last_name=result['last_name']
+                last_name=result['last_name'],
+                gender=result['gender']
                 )
             users.append(user)
         return users
