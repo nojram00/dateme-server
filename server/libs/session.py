@@ -15,14 +15,6 @@ def validate(token : str | None):
             "message" : "Please provide a valid session header with a session id" ,
             "code" : "err_no_x_session_header"
         })
-    
-    if s.get_session_expiry(token) < datetime.now():
-        s.delete_session(token)
-        raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail={
-            "status" : "error", 
-            "message" : "Session has expired" ,
-            "code" : "err_session_expired"
-        })
 
     if s.get_session(token) is None:
         s.delete_session(token)
@@ -32,4 +24,13 @@ def validate(token : str | None):
             "code" : "err_session_not_found"
         })
     
+    if s.get_session_expiry(token) < datetime.now():
+        s.delete_session(token)
+        raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail={
+            "status" : "error", 
+            "message" : "Session has expired" ,
+            "code" : "err_session_expired"
+        })
+
+
     return token
