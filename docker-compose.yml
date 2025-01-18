@@ -1,0 +1,9 @@
+
+name: 'dateme-server'
+
+services:
+  app:
+    image: 'nojram/dateme-server:latest'
+    build: .
+    ports:
+      - '8000:8000'
