@@ -38,6 +38,13 @@ def get_posts_by_id(user_id: str):
 
     return result
 
+@router.get("/posts/find/{post_id}")
+def get_post_by_id(post_id: str):
+    post = Post()
+    result = post.get_post_by_id(post_id)
+
+    return result
+
 @router.post("/posts/like/{post_id}")
 def like_post(post_id : str, x_session_header : str = Header(None)):
     token = validate(x_session_header)

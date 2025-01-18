@@ -6,7 +6,7 @@ load_dotenv()
 
 def create_connection():
     client = MongoClient(os.getenv('MONGO_DB_URL'))
-    db = client['dateme']
+    db = client[os.getenv('MONGO_DB_NAME')]
     return db
 
 if __name__ == "__main__":
