@@ -11,7 +11,7 @@ class PostData(BaseModel):
     user_id: str
     content : str
     likes : int = 0
-    user_likes : list
+    user_likes : list[str] = []
 
 class CreateForm(BaseModel):
     content : str

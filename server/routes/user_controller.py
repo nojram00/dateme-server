@@ -44,6 +44,11 @@ def get_session(x_session_header : str = Header(None)):
     s = session.Session()
     return s.get_session(token)
 
+@router.get("/user/{user_id}")
+def get_user_by_id(user_id : str):
+    u = users.User()
+    return u.get_user_by_id(user_id)
+
 @router.get("/users/gender/{gender}")
 def get_users_by_gender(gender : users.Gender, x_session_header :str=Header(None)):
     validate(x_session_header)
