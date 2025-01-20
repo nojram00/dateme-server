@@ -1,6 +1,7 @@
-from .base import BaseMongoModel
+from server.models.base import BaseMongoModel
 from pydantic import BaseModel
 from bson import ObjectId
+from server.models.users import UserSchema
 
 class PostSchema(BaseModel):
     user_id: str
@@ -12,6 +13,7 @@ class PostData(BaseModel):
     content : str
     likes : int = 0
     user_likes : list[str] = []
+    user_info : UserSchema = None
 
 class CreateForm(BaseModel):
     content : str
@@ -63,12 +65,31 @@ class Post(BaseMongoModel):
                 "$match" : { '_id' : ObjectId(post_id) }
             },
             {
+                "$addFields" : {
+                    "user_id" : { "$toObjectId" : "$user_id" }
+                }
+            },
+            {
+                "$lookup" : {
+                    "from" : "users",
+                    "localField" : "user_id",
+                    "foreignField" : "_id",
+                    "as" : "user_info"
+                }
+            },
+            {
                 "$project" : {
                     "post_id" : "$_id",
                     "user_id" : "$user_id",
                     "content" : "$content",
-                    "likes" : { "$size" : "$likes" },
-                    "user_likes" : "$likes"
+                    "likes" : { "$size" : 
+                            {
+                                "$ifNull" : [ "$likes", [] ]
+                            }
+                    },
+                    "user_likes" : {
+                        "$ifNull" : [ "$likes", [] ]
+                    }
                 }
             },
             {
@@ -79,10 +100,17 @@ class Post(BaseMongoModel):
         if result:
             return PostData(
                 post_id=str(result['post_id']),
-                user_id=result['user_id'],
+                user_id=str(result['user_id']),
                 content=result['content'],
                 likes=result['likes'],
-                user_likes=result['user_likes']
+                user_likes=result['user_likes'],
+                user_info=UserSchema(
+                    uid=str(result["user_info"][0]["_id"]), 
+                    username=result["user_info"][0]["username"], 
+                    email=result["user_info"][0]["email"],
+                    first_name=result["user_info"][0]["first_name"],
+                    last_name=result["user_info"][0]["last_name"],
+                    )
             )
         return None
     
@@ -100,17 +128,60 @@ class Post(BaseMongoModel):
                 return False
     
     def get_posts(self) -> list[PostData]:
-        results = self.collection.find()
+
+        results = self.collection.aggregate([
+            {
+                "$addFields" : {
+                    "user_id" : { "$toObjectId" : "$user_id" }
+                }
+            },
+            {
+                "$project" : {
+                    "post_id" : "$_id",
+                    "user_id" : "$user_id",
+                    "content" : "$content",
+                    "likes" : { "$size" : {
+                        "$ifNull" : [ "$likes", [] ]
+                    } 
+                    },
+                    "user_likes" : {
+                        "$ifNull" : [ "$likes", [] ]
+                    }
+                }
+            },
+            {
+                "$lookup" : {
+                    "from" : "users",
+                    "localField" : "user_id",
+                    "foreignField" : "_id",
+                    "as" : "user_info"
+                }
+            },
+        ])
+
         posts = []
         for result in results:
-            result['_id'] = str(result['_id'])
-            like_count = len(result.get('likes', []))
-            posts.append(PostData(
-                post_id=result['_id'],
-                user_id=result['user_id'],
-                content=result['content'],
-                likes=like_count
-            ))
+            if result['user_info'] != None:
+                result['_id'] = str(result['_id'])
+                user_info = result["user_info"][0]
+                if(len(result['user_likes']) == 0):
+                    result['user_likes'] = []
+                posts.append(PostData(
+                    post_id=result['_id'],
+                    user_id=str(result['user_id']),
+                    content=result['content'],
+                    likes=result['likes'],
+                    user_likes=result['user_likes'],
+                    user_info=UserSchema(
+                        uid=str(user_info["_id"]), 
+                        username=user_info["username"], 
+                        email=user_info["email"],
+                        first_name=user_info["first_name"],
+                        last_name=user_info["last_name"],
+                        gender=user_info['gender']
+                    )
+                ))
+        print(posts)
         return posts
     
     def get_post_like_count(self, post_id : str) -> int:
@@ -124,5 +195,7 @@ class Post(BaseMongoModel):
     
 
 
-if __name__ == '__name__':
-    posts = Post.instance()
+if __name__ == '__main__':
+    posts = Post()
+
+    print(posts.get_posts())
