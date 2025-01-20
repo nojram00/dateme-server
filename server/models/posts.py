@@ -2,10 +2,12 @@ from server.models.base import BaseMongoModel
 from pydantic import BaseModel
 from bson import ObjectId
 from server.models.users import UserSchema
+from datetime import datetime
 
 class PostSchema(BaseModel):
     user_id: str
     content : str
+    date_created : datetime = datetime.now()
 
 class PostData(BaseModel):
     post_id: str
@@ -14,6 +16,7 @@ class PostData(BaseModel):
     likes : int = 0
     user_likes : list[str] = []
     user_info : UserSchema = None
+    date_created : datetime
 
 class CreateForm(BaseModel):
     content : str
@@ -34,14 +37,24 @@ class Post(BaseMongoModel):
                 "$match" : { 'user_id' : user_id }
             },
             {
+                "$addFields" : {
+                    "user_id" : { "$toObjectId" : "$user_id" }
+                }
+            },
+            {
                 "$project" : {
                     "post_id" : "$_id",
                     "user_id" : "$user_id",
                     "content" : "$content",
-                    "like_count" : {
-                        "$size" : "$likes"
+                    "likes" : { "$size" : 
+                            {
+                                "$ifNull" : [ "$likes", [] ]
+                            }
                     },
-                    "user_likes" : "$likes"
+                    "user_likes" : {
+                        "$ifNull" : [ "$likes", [] ]
+                    },
+                    "date_created" : { "$ifNull" : [ "$date_created", datetime.now() ] },
                 }
             }
         ])
@@ -53,7 +66,8 @@ class Post(BaseMongoModel):
                 user_id=result['user_id'],
                 content=result['content'],
                 likes=result['like_count'],
-                user_likes=result['user_likes']
+                user_likes=result['user_likes'],
+                date_created=result['date_created']
             ))
         return posts
     
@@ -89,7 +103,8 @@ class Post(BaseMongoModel):
                     },
                     "user_likes" : {
                         "$ifNull" : [ "$likes", [] ]
-                    }
+                    },
+                    "date_created" : { "$ifNull" : [ "$date_created", datetime.now() ] },
                 }
             },
             {
@@ -104,6 +119,7 @@ class Post(BaseMongoModel):
                 content=result['content'],
                 likes=result['likes'],
                 user_likes=result['user_likes'],
+                date_created=result['date_created'],
                 user_info=UserSchema(
                     uid=str(result["user_info"][0]["_id"]), 
                     username=result["user_info"][0]["username"], 
@@ -127,8 +143,9 @@ class Post(BaseMongoModel):
                 self.collection.update_one({ '_id' : ObjectId(post_id) }, { '$set' : { 'likes' : likes } })
                 return False
     
-    def get_posts(self) -> list[PostData]:
+    def get_posts(self, offset = 5, page = 1) -> tuple[list[PostData], int, int]:
 
+        current = (page - 1) * offset
         results = self.collection.aggregate([
             {
                 "$addFields" : {
@@ -146,7 +163,8 @@ class Post(BaseMongoModel):
                     },
                     "user_likes" : {
                         "$ifNull" : [ "$likes", [] ]
-                    }
+                    },
+                    "date_created" : { "$ifNull" : [ "$date_created", datetime.now() ] }
                 }
             },
             {
@@ -157,6 +175,15 @@ class Post(BaseMongoModel):
                     "as" : "user_info"
                 }
             },
+            {
+                "$sort" : { "date_created" : -1 }
+            },
+            {
+                "$limit" : offset
+            },
+            {
+                "$skip" : current
+            }
         ])
 
         posts = []
@@ -172,6 +199,7 @@ class Post(BaseMongoModel):
                     content=result['content'],
                     likes=result['likes'],
                     user_likes=result['user_likes'],
+                    date_created=result['date_created'],
                     user_info=UserSchema(
                         uid=str(user_info["_id"]), 
                         username=user_info["username"], 
@@ -181,8 +209,10 @@ class Post(BaseMongoModel):
                         gender=user_info['gender']
                     )
                 ))
-        print(posts)
-        return posts
+        
+        total = self.collection.count_documents({})
+        total_pages = (total + offset - 1) // offset
+        return posts, page, total_pages
     
     def get_post_like_count(self, post_id : str) -> int:
         post = self.collection.aggregate([

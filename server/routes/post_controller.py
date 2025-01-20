@@ -25,11 +25,15 @@ def create_post(body : CreateForm, x_session_header : str = Header(None)):
     }
 
 @router.get("/posts")
-def get_posts():
+def get_posts(page : int = 1):
     post = Post()
-    result = post.get_posts()
+    result, current_page, total_pages = post.get_posts(10, page)
 
-    return result
+    return {
+        "data" : result,
+        "current_page" : current_page,
+        "total_pages" : total_pages
+    }
 
 @router.get("/posts/user/{user_id}")
 def get_posts_by_id(user_id: str):
